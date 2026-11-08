@@ -555,7 +555,7 @@
     var hl = $$(".hero__word .L");
     var melt = [0, 14, -8, 18, -6, 10];
     gsap.to(hl, { yPercent: function (i) { return melt[i]; }, scaleY: function (i) { return i % 2 ? 1.22 : .9; }, ease: "none", scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: .6 } });
-    gsap.to(".hero__media img", { yPercent: 10, scale: 1.08, ease: "none", scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true } });
+    gsap.to(".hero__media img, .hero__media video", { yPercent: 10, scale: 1.08, ease: "none", scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true } });
 
     // Banners 50/50 parallax
     $$(".duo__card img").forEach(function (img) { gsap.fromTo(img, { yPercent: -10 }, { yPercent: 0, ease: "none", scrollTrigger: { trigger: img.parentElement, scrub: true } }); });
@@ -652,8 +652,11 @@
     var slides = p.packs ? p.packs.map(function (f) { return { src: src(f), bottle: true }; }) : p.id === "shampoo-keratin" ? [0, 1, 2, 3].map(function (i) { return { src: IMG + "bottle-" + i + ".webp", bottle: true }; }) : [{ src: src(p.img), bottle: true }];
     if (p.isKit && !p.packs) slides = ["p-keratin.webp", "p-coconut.webp", "p-thermo.webp"].map(function (f) { return { src: IMG + f, bottle: true }; });
     (p.gallery || []).forEach(function (f) { slides.push({ src: src(f) }); });
-    $(".gallery__main .swiper-wrapper").innerHTML = slides.map(function (s, i) { return '<div class="swiper-slide"><img class="' + (s.bottle ? "bottle" : "") + '" src="' + s.src + '" alt="' + p.name + " — imagen " + (i + 1) + '"' + (i ? ' loading="lazy"' : "") + "></div>"; }).join("");
-    $(".gallery__thumbs").innerHTML = slides.map(function (s, i) { return '<button type="button" aria-label="Ver imagen ' + (i + 1) + '" aria-current="' + (i === 0) + '"><img class="' + (s.bottle ? "bottle" : "") + '" src="' + s.src + '" alt="" loading="lazy"></button>'; }).join("");
+    if (p.video) slides.splice(Math.min(1, slides.length), 0, { src: src(p.img), video: p.video });
+    $(".gallery__main .swiper-wrapper").innerHTML = slides.map(function (s, i) {
+      if (s.video) return '<div class="swiper-slide swiper-slide--video"><video class="gallery__video" src="' + esc(s.video) + '" poster="' + s.src + '" muted loop playsinline preload="metadata"></video></div>';
+      return '<div class="swiper-slide"><img class="' + (s.bottle ? "bottle" : "") + '" src="' + s.src + '" alt="' + p.name + " — imagen " + (i + 1) + '"' + (i ? ' loading="lazy"' : "") + "></div>"; }).join("");
+    $(".gallery__thumbs").innerHTML = slides.map(function (s, i) { return '<button type="button" aria-label="' + (s.video ? "Ver video" : "Ver imagen " + (i + 1)) + '" aria-current="' + (i === 0) + '"' + (s.video ? ' class="thumb--video"' : "") + '><img class="' + (s.bottle ? "bottle" : "") + '" src="' + s.src + '" alt="" loading="lazy">' + (s.video ? '<span class="thumb__play">▶</span>' : "") + "</button>"; }).join("");
     // Las fotos de envase recortadas (fondo transparente) se muestran enteras
     $$(".gallery__main .swiper-slide img:not(.bottle), .gallery__thumbs img:not(.bottle)").forEach(function (im) {
       var check = function () {
@@ -668,10 +671,14 @@
     var thumbs = $$(".gallery__thumbs button");
     thumbs.forEach(function (b, i) { b.addEventListener("click", function () { if (gsw) gsw.slideTo(i); }); });
     if (gsw) gsw.on("slideChange", function () { thumbs.forEach(function (b, i) { b.setAttribute("aria-current", i === gsw.activeIndex); }); });
+    /* El video de la galería se reproduce cuando está a la vista */
+    function galleryVideo() { $$(".gallery__video").forEach(function (v) { var on = gsw ? v.closest(".swiper-slide") === gsw.slides[gsw.activeIndex] : true; if (on && !REDUCED) { var pr = v.play(); if (pr && pr.catch) pr.catch(function () {}); } else v.pause(); }); }
+    if (gsw) gsw.on("slideChange", galleryVideo);
+    galleryVideo();
     // Zoom
     if (matchMedia("(hover: hover)").matches) {
       $$(".gallery__main .swiper-slide").forEach(function (sl) {
-        var img = $("img", sl);
+        var img = $("img", sl); if (!img) return;
         sl.addEventListener("mousemove", function (e) { var r = sl.getBoundingClientRect(); img.style.transformOrigin = ((e.clientX - r.left) / r.width * 100) + "% " + ((e.clientY - r.top) / r.height * 100) + "%"; img.style.transform = "scale(1.9)"; });
         sl.addEventListener("mouseleave", function () { img.style.transform = ""; });
       });
@@ -785,6 +792,8 @@
     if (page === "product") initProduct();
     paintAll();
     freshStock();
+    videos();
+    popup();
     hydrateStickers(document);
     smooth();
     animations(page);
@@ -795,6 +804,84 @@
     } else intro(function () {});
     window.addEventListener("load", function () { if (window.ScrollTrigger) ScrollTrigger.refresh(); });
   });
+
+  /* Videos en lugar de fotos: se reproducen cuando se ven y se pausan al salir de la pantalla.
+     Con “movimiento reducido” o ahorro de datos queda la foto. */
+  function videos() {
+    var vids = $$("video.rm-video"); if (!vids.length) return;
+    var save = navigator.connection && navigator.connection.saveData;
+    if (REDUCED || save) return;
+    var play = function (v) { v.muted = true; if (v.preload !== "auto") { v.preload = "auto"; v.load(); } var pr = v.play(); if (pr && pr.catch) pr.catch(function () {}); };
+    if (!("IntersectionObserver" in window)) { vids.forEach(play); return; }
+    var io = new IntersectionObserver(function (en) { en.forEach(function (e) { if (e.isIntersecting) play(e.target); else e.target.pause(); }); }, { rootMargin: "150px" });
+    vids.forEach(function (v) { io.observe(v); });
+  }
+
+  /* ---------- Popup de bienvenida y newsletter ---------- */
+  var POP = RM.popup || { on: false };
+  var popKey = "rommer-pop";
+  function popState() { return store.get(popKey, {}) || {}; }
+  function subscribe(form, done) {
+    var email = $("input[type=email]", form), err = $(".js-sub-err", form), btn = $("button[type=submit]", form);
+    var v = (email.value || "").trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) { if (err) { err.textContent = tx("popErr", "Revisá el email, parece que tiene un error."); err.hidden = false; } else toast(esc(tx("popErr", "Revisá el email."))); email.focus(); return; }
+    if (err) err.hidden = true;
+    btn.disabled = true;
+    var finish = function (r) {
+      btn.disabled = false;
+      if (!r || !r.ok) { var m = (r && r.msg) || tx("popErr", "No se pudo suscribir. Probá de nuevo."); if (err) { err.textContent = m; err.hidden = false; } else toast(esc(m)); return; }
+      store.set(popKey, { done: 1, code: r.code });
+      done(r);
+    };
+    if (!RM.ajax) { setTimeout(function () { finish({ ok: true, code: POP.demo || "HOLAROMMER10" }); }, 400); return; } // vista de demostración
+    var f = new FormData(form); f.append("action", "rommer_subscribe"); f.append("src", form.dataset.src || "popup");
+    fetch(RM.ajax, { method: "POST", body: f, credentials: "same-origin" }).then(function (r) { return r.json(); }).then(finish).catch(function () { finish(null); });
+  }
+  function popup() {
+    var pop = $("#rm-pop");
+    $$("form.js-sub").forEach(function (form) {
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        subscribe(form, function (r) {
+          if (form.dataset.src === "popup" && pop) showCode(r);
+          else { toast(esc((POP.newsOk || "¡Listo! Tu código es {codigo}").replace("{codigo}", r.code))); form.reset(); }
+        });
+      });
+    });
+    if (!pop) return;
+    var opened = false, timer = null;
+    function open() {
+      if (opened) return; opened = true; clearTimeout(timer);
+      pop.hidden = false; void pop.offsetWidth; pop.classList.add("is-open");
+      if (lenis) lenis.stop();
+      setTimeout(function () { var i = $("input[type=email]", pop); if (i && matchMedia("(hover: hover)").matches) i.focus({ preventScroll: true }); }, 350);
+    }
+    function close() {
+      if (!opened) return; opened = false;
+      pop.classList.remove("is-open"); setTimeout(function () { pop.hidden = true; }, 300);
+      if (lenis) lenis.start();
+      var st = popState(); if (!st.done) store.set(popKey, { closed: Date.now() });
+    }
+    function showCode(r) {
+      $(".js-pop-form", pop).hidden = true; $(".js-pop-ok", pop).hidden = false;
+      $(".js-pop-code", pop).textContent = r.code;
+      var t = $(".js-pop-ok-text", pop); if (r.dup && t.dataset.dup) t.textContent = t.dataset.dup;
+    }
+    window.RommerPopup = { open: open, close: close };
+    $$(".js-pop-close", pop).forEach(function (b) { b.addEventListener("click", function () { close(); }); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+    $(".js-pop-copy", pop).addEventListener("click", function () {
+      var b = this, code = $(".js-pop-code", pop).textContent, ok = function () { var o = b.textContent; b.textContent = b.dataset.done || "¡Copiado!"; setTimeout(function () { b.textContent = o; }, 1600); };
+      if (navigator.clipboard) navigator.clipboard.writeText(code).then(ok, ok); else ok();
+    });
+    var forced = /[?&]bienvenida\b/.test(location.search);
+    var st = popState();
+    if (forced) { if (st.done) showCode({ code: st.code }); setTimeout(open, 600); return; }
+    if (!POP.on || st.done) return;
+    if (st.closed && Date.now() - st.closed < (POP.days || 7) * 864e5) return;
+    timer = setTimeout(open, Math.max(1, POP.delay || 6) * 1000);
+    if (matchMedia("(hover: hover)").matches) document.addEventListener("mouseout", function (e) { if (!e.relatedTarget && e.clientY < 8) open(); });
+  }
 
   /* Disponibilidad al momento: aunque la página esté en caché, el stock se consulta de nuevo. */
   function freshStock() {
