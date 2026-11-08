@@ -858,6 +858,7 @@
     freshStock();
     videos();
     popup();
+    arrep();
     hydrateStickers(document);
     smooth();
     animations(page);
@@ -970,6 +971,23 @@
       if (document.documentElement.scrollHeight - innerHeight <= 200) timer = setTimeout(function () { open(true); }, Math.max(1, POP.delay || 6) * 1000);
     } else timer = setTimeout(function () { open(true); }, Math.max(1, POP.delay || 6) * 1000);
     if (matchMedia("(hover: hover)").matches) document.addEventListener("mouseout", function (e) { if (!e.relatedTarget && e.clientY < 8) open(true); });
+  }
+
+  /* Botón de arrepentimiento: envía el pedido y muestra el código de identificación */
+  function arrep() {
+    $$("form.js-arrep").forEach(function (form) {
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var msg = $(".js-arrep-msg", form), btn = $("button[type=submit]", form);
+        var need = ["nombre", "email", "pedido"].filter(function (n) { return !form.elements[n].value.trim(); });
+        if (need.length) { msg.textContent = "Completá nombre, email y número de pedido."; msg.hidden = false; return; }
+        var done = function (r) { btn.disabled = false; msg.hidden = false; if (r && r.ok) { msg.innerHTML = "Recibimos tu pedido. Tu código de identificación es <b>" + esc(r.code) + "</b>. Te lo mandamos también por mail."; form.reset(); } else msg.textContent = (r && r.msg) || "No se pudo enviar. Escribinos por WhatsApp."; };
+        btn.disabled = true;
+        if (!RM.ajax) { setTimeout(function () { done({ ok: true, code: "ARR-DEMO01" }); }, 400); return; }
+        var f = new FormData(form); f.append("action", "rommer_arrep");
+        fetch(RM.ajax, { method: "POST", body: f, credentials: "same-origin" }).then(function (r) { return r.json(); }).then(done).catch(function () { done(null); });
+      });
+    });
   }
 
   /* Disponibilidad al momento: aunque la página esté en caché, el stock se consulta de nuevo. */
