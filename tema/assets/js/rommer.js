@@ -229,8 +229,12 @@
     $$(".cart-count").forEach(function (c) { c.textContent = count; c.classList.toggle("has-items", count > 0); });
     var d = $("#drawer"); if (!d) return;
     $(".js-cart-n", d).textContent = count ? "(" + count + ")" : "";
-    var sub = cartSubtotal(), rate = kitDiscountRate(), cpd = cpDiscount(sub), cpf = sub ? (sub - cpd) / sub : 1;
+    var sub = cartSubtotal(), rate = kitDiscountRate(), cpd = cpDiscount(sub), kitBest = false;
+    /* Cupón o kit: se aplica el mayor (igual que WooCommerce al cobrar) */
+    if (tx("cpStack", "mejor") !== "suma" && cpd && rate) { if (Math.round(kitBase() * rate) >= cpd) { cpd = 0; kitBest = true; } else rate = 0; }
+    var cpf = sub ? (sub - cpd) / sub : 1;
     var disc = Math.round(kitBase() * cpf * rate), total = sub - cpd - disc;
+    window.RommerKitBest = kitBest;
     // envío gratis
     var left = Math.max(0, FREE_SHIP - total), pct = Math.min(100, total / FREE_SHIP * 100);
     var ship = $(".ship", d);
@@ -284,7 +288,9 @@
       on.hidden = !(CP && CP.code && !CP.on); on.textContent = "🎁 " + tx("cpUse", "Usar mi cupón") + " " + (CP ? CP.code : "");
       op.hidden = !!(CP && CP.code) || !fm.hidden;
       if (needMin) { msg.textContent = tx("cpMin", "Este cupón vale en compras desde {monto}.").replace("{monto}", money(CP.min)); msg.hidden = false; }
-      else if (msg.dataset.keep !== "1") msg.hidden = true;
+      else if (kitBest) { msg.textContent = tx("cpKitNote", "Tu kit ya tiene un descuento mayor: tu cupón queda guardado para otra compra."); msg.hidden = false; msg.classList.add("cp-msg--ok"); }
+      else if (msg.dataset.keep !== "1") { msg.hidden = true; }
+      if (!kitBest) msg.classList.remove("cp-msg--ok");
     }
     var ct = cuotasTxt(total); $(".js-cuotas", d).textContent = ct ? tx("cuotas", "o {detalle}").replace("{detalle}", ct) : "";
     $(".js-checkout", d).disabled = !count;
@@ -318,7 +324,7 @@
       else if (t.classList.contains("js-checkout")) {
         if (RM.checkout) {
           var items = cart.map(function (i) { var p = byId(i.id); if (!p) return ""; var s = p.sizes[i.size] || p.sizes[0]; return (s.vid || p.wcId) + ":" + i.qty; }).filter(Boolean).join(",");
-          location.href = RM.checkout + (RM.checkout.indexOf("?") > -1 ? "&" : "?") + "rommer_cart=" + encodeURIComponent(items) + (cpOn() ? "&rommer_coupon=" + encodeURIComponent(CP.code) : "");
+          location.href = RM.checkout + (RM.checkout.indexOf("?") > -1 ? "&" : "?") + "rommer_cart=" + encodeURIComponent(items) + (cpOn() && !window.RommerKitBest ? "&rommer_coupon=" + encodeURIComponent(CP.code) : "");
         } else toast("En WordPress este botón lleva al checkout de WooCommerce con Mercado Pago :)");
       }
       else closeAll();
@@ -895,6 +901,7 @@
     var finish = function (r) {
       btn.disabled = false;
       if (!r || !r.ok) { var m = (r && r.msg) || tx("popErr", "No se pudo suscribir. Probá de nuevo."); if (err) { err.textContent = m; err.hidden = false; } else toast(esc(m)); return; }
+      if (r.used) { store.set(popKey, { done: 1 }); store.set("rommer-coupon", null); CP = null; done(r); return; }
       store.set(popKey, { done: 1, code: r.code });
       cpSave({ code: r.code, type: r.type || "percent", amount: r.amount || POP.p || 10, min: r.min || 0, on: true });
       done(r);
@@ -910,7 +917,7 @@
         e.preventDefault();
         subscribe(form, function (r) {
           if (form.dataset.src === "popup" && pop) showCode(r);
-          else { toast(esc((POP.newsOk || "¡Listo! Tu código es {codigo}").replace("{codigo}", r.code))); form.reset(); }
+          else { toast(esc(r.used ? (r.msg || "") : (POP.newsOk || "¡Listo! Tu código es {codigo}").replace("{codigo}", r.code))); form.reset(); }
         });
       });
     });
@@ -943,7 +950,9 @@
     function showCode(r) {
       showTab(false);
       $(".js-pop-form", pop).hidden = true; $(".js-pop-ok", pop).hidden = false;
-      $(".js-pop-code", pop).textContent = r.code;
+      $(".js-pop-code", pop).textContent = r.code || "";
+      $(".pop__code", pop).hidden = !r.code;
+      if (r.used) { $(".js-pop-ok-text", pop).textContent = r.msg || ""; var ot = $(".js-pop-ok .pop__t", pop); if (ot) ot.hidden = true; return; }
       var t = $(".js-pop-ok-text", pop); if (r.dup && t.dataset.dup) t.textContent = t.dataset.dup;
     }
     window.RommerPopup = { open: open, close: close };

@@ -1241,3 +1241,6 @@ input, select { font: inherit; }
 .arrep__msg[hidden] { display: none; }
 @media (max-width: 600px) { .arrep__grid { grid-template-columns: 1fr; } }
 @media (max-width: 700px) { .footer__bottom .footer__legal { text-align: left; align-items: flex-start; justify-content: flex-start; } .footer__legal-l { justify-content: flex-start; } }
+
+.cp-msg.cp-msg--ok { color: var(--ink); font-weight: 500; background: rgba(253,151,207,.18); padding: 8px 12px; border-radius: 10px; }
+.pop__code[hidden] { display: none; }
