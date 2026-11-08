@@ -849,9 +849,11 @@
       });
     });
     if (!pop) return;
-    var opened = false, timer = null;
-    function open() {
-      if (opened) return; opened = true; clearTimeout(timer);
+    var opened = false, shown = false, timer = null;
+    /* auto: lo abrió la web sola (tiempo o mouse hacia arriba). Se abre una sola vez por visita. */
+    function open(auto) {
+      if (opened || (auto === true && (shown || store.sget("rommer-pop-visto")))) return;
+      opened = true; shown = true; clearTimeout(timer);
       pop.hidden = false; void pop.offsetWidth; pop.classList.add("is-open");
       if (lenis) lenis.stop();
       setTimeout(function () { var i = $("input[type=email]", pop); if (i && matchMedia("(hover: hover)").matches) i.focus({ preventScroll: true }); }, 350);
@@ -860,7 +862,8 @@
       if (!opened) return; opened = false;
       pop.classList.remove("is-open"); setTimeout(function () { pop.hidden = true; }, 300);
       if (lenis) lenis.start();
-      var st = popState(); if (!st.done) store.set(popKey, { closed: Date.now() });
+      store.sset("rommer-pop-visto", "1"); // en esta visita no vuelve a aparecer
+      var st = popState(); if (!st.done && POP.days > 0) store.set(popKey, { closed: Date.now() });
     }
     function showCode(r) {
       $(".js-pop-form", pop).hidden = true; $(".js-pop-ok", pop).hidden = false;
@@ -877,10 +880,10 @@
     var forced = /[?&]bienvenida\b/.test(location.search);
     var st = popState();
     if (forced) { if (st.done) showCode({ code: st.code }); setTimeout(open, 600); return; }
-    if (!POP.on || st.done) return;
-    if (st.closed && Date.now() - st.closed < (POP.days || 7) * 864e5) return;
-    timer = setTimeout(open, Math.max(1, POP.delay || 6) * 1000);
-    if (matchMedia("(hover: hover)").matches) document.addEventListener("mouseout", function (e) { if (!e.relatedTarget && e.clientY < 8) open(); });
+    if (!POP.on || st.done || store.sget("rommer-pop-visto")) return;
+    if (POP.days > 0 && st.closed && Date.now() - st.closed < POP.days * 864e5) return;
+    timer = setTimeout(function () { open(true); }, Math.max(1, POP.delay || 6) * 1000);
+    if (matchMedia("(hover: hover)").matches) document.addEventListener("mouseout", function (e) { if (!e.relatedTarget && e.clientY < 8) open(true); });
   }
 
   /* Disponibilidad al momento: aunque la página esté en caché, el stock se consulta de nuevo. */
