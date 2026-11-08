@@ -177,6 +177,18 @@
     play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg>'
   };
 
+  /* ---------- Cupón (bienvenida o cargado a mano) ---------- */
+  var CP = store.get("rommer-coupon", null);
+  function cpSave(c) { CP = c; store.set("rommer-coupon", c); renderCart(); if (window.RommerPaintCoupon) window.RommerPaintCoupon(); }
+  function cpOn() { return !!(CP && CP.code && CP.on); }
+  /* Descuento del cupón sobre un monto (igual que WooCommerce: % o monto fijo, con compra mínima) */
+  function cpDiscount(amount) {
+    if (!cpOn() || !amount || (CP.min && amount < CP.min)) return 0;
+    if (CP.type === "percent") return Math.round(amount * CP.amount / 100);
+    if (CP.type === "fixed") return Math.min(amount, CP.amount);
+    return 0;
+  }
+
   /* ---------- Carrito ---------- */
   var cart = store.get("rommer-cart", []);
   function priceOf(item) { var p = byId(item.id); if (!p) return 0; var s = p.sizes[item.size] || p.sizes[0]; return s.p; }
@@ -217,7 +229,8 @@
     $$(".cart-count").forEach(function (c) { c.textContent = count; c.classList.toggle("has-items", count > 0); });
     var d = $("#drawer"); if (!d) return;
     $(".js-cart-n", d).textContent = count ? "(" + count + ")" : "";
-    var sub = cartSubtotal(), rate = kitDiscountRate(), disc = Math.round(kitBase() * rate), total = sub - disc;
+    var sub = cartSubtotal(), rate = kitDiscountRate(), cpd = cpDiscount(sub), cpf = sub ? (sub - cpd) / sub : 1;
+    var disc = Math.round(kitBase() * cpf * rate), total = sub - cpd - disc;
     // envío gratis
     var left = Math.max(0, FREE_SHIP - total), pct = Math.min(100, total / FREE_SHIP * 100);
     var ship = $(".ship", d);
@@ -261,6 +274,18 @@
     $(".js-sub", d).textContent = money(sub);
     var dr = $(".js-disc-row", d); dr.hidden = !disc; $(".js-disc", d).textContent = "−" + money(disc);
     $(".js-total", d).textContent = money(total);
+    var cr = $(".js-cp-row", d);
+    if (cr) {
+      cr.hidden = !cpd;
+      $(".js-cp-label", d).textContent = tx("cpLine", "Cupón {codigo}").replace("{codigo}", CP ? CP.code : "");
+      $(".js-cp", d).textContent = "−" + money(cpd);
+      var on = $(".js-cp-on", d), op = $(".js-cp-open", d), fm = $(".js-cp-form", d), msg = $(".js-cp-msg", d);
+      var needMin = CP && CP.on && CP.min && sub < CP.min;
+      on.hidden = !(CP && CP.code && !CP.on); on.textContent = "🎁 " + tx("cpUse", "Usar mi cupón") + " " + (CP ? CP.code : "");
+      op.hidden = !!(CP && CP.code) || !fm.hidden;
+      if (needMin) { msg.textContent = tx("cpMin", "Este cupón vale en compras desde {monto}.").replace("{monto}", money(CP.min)); msg.hidden = false; }
+      else if (msg.dataset.keep !== "1") msg.hidden = true;
+    }
     var ct = cuotasTxt(total); $(".js-cuotas", d).textContent = ct ? tx("cuotas", "o {detalle}").replace("{detalle}", ct) : "";
     $(".js-checkout", d).disabled = !count;
   }
@@ -293,12 +318,28 @@
       else if (t.classList.contains("js-checkout")) {
         if (RM.checkout) {
           var items = cart.map(function (i) { var p = byId(i.id); if (!p) return ""; var s = p.sizes[i.size] || p.sizes[0]; return (s.vid || p.wcId) + ":" + i.qty; }).filter(Boolean).join(",");
-          location.href = RM.checkout + (RM.checkout.indexOf("?") > -1 ? "&" : "?") + "rommer_cart=" + encodeURIComponent(items);
+          location.href = RM.checkout + (RM.checkout.indexOf("?") > -1 ? "&" : "?") + "rommer_cart=" + encodeURIComponent(items) + (cpOn() ? "&rommer_coupon=" + encodeURIComponent(CP.code) : "");
         } else toast("En WordPress este botón lleva al checkout de WooCommerce con Mercado Pago :)");
       }
       else closeAll();
     });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeAll(); });
+    var d = $("#drawer");
+    if (d && $(".js-cp-box", d)) {
+      var fm = $(".js-cp-form", d), msg = $(".js-cp-msg", d);
+      $(".js-cp-open", d).addEventListener("click", function () { fm.hidden = false; this.hidden = true; $("input", fm).focus(); });
+      $(".js-cp-on", d).addEventListener("click", function () { if (CP) { CP.on = true; cpSave(CP); } });
+      $(".js-cp-off", d).addEventListener("click", function () { if (CP) { CP.on = false; cpSave(CP); } });
+      fm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var code = $("input", fm).value.trim().toUpperCase(); if (!code) return;
+        var show = function (t) { msg.textContent = t; msg.hidden = false; msg.dataset.keep = "1"; setTimeout(function () { msg.dataset.keep = ""; }, 4000); };
+        var ok = function (r) { fm.hidden = true; $("input", fm).value = ""; msg.hidden = true; cpSave({ code: r.code, type: r.type, amount: r.amount, min: r.min, on: true }); };
+        if (!RM.ajax) { if (POP.demo && code === POP.demo.toUpperCase()) ok({ code: code, type: "percent", amount: POP.p || 10, min: 0 }); else show(tx("cpErr", "Ese cupón no existe.")); return; }
+        var f = new FormData(); f.append("action", "rommer_coupon"); f.append("code", code);
+        fetch(RM.ajax, { method: "POST", body: f, credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (r) { if (r.ok) ok(r); else show(r.msg || tx("cpErr", "Ese cupón no existe.")); }).catch(function () { show(tx("cpErr", "Ese cupón no existe.")); });
+      });
+    }
     renderCart();
   }
 
@@ -695,8 +736,31 @@
       $(".price__cuotas").innerHTML = [cuotasHTML(s.p), esc(transferTxt())].filter(Boolean).join(" · ");
       $(".js-buy-total").textContent = money(total);
       $(".js-sticky-price").textContent = s.l + " · " + money(s.p);
+      paintCoupon();
       $(".qty output", $(".buy")).textContent = state.qty;
     }
+    /* Cupón en la ficha: precio con descuento y “Usar mi cupón”, o invitación a pedirlo */
+    function paintCoupon() {
+      var box = $(".js-cp-pdp"); if (!box) return;
+      var s = p.sizes[state.size], html = "";
+      if (CP && CP.code && (CP.type === "percent" || CP.type === "fixed")) {
+        var tmp = CP.on; CP.on = true; var dsc = cpDiscount(s.p * state.qty); CP.on = tmp;
+        var pct = CP.type === "percent" ? CP.amount : 0;
+        html = '<span class="cp-pdp__t">🎁 ' + esc(tx("cpHave", "Tenés {cupon}% OFF de bienvenida").replace("{cupon}", pct || "")) + "</span>";
+        if (dsc) html += '<span class="cp-pdp__p">' + esc(tx("cpPrice", "Con tu cupón: {precio}").replace("{precio}", money(s.p * state.qty - dsc))) + "</span>";
+        html += CP.on ? '<span class="cp-pdp__on">' + esc(tx("cpUsing", "✓ Cupón aplicado")) + '</span><button type="button" class="cp-x js-cp-pdp-off">' + esc(tx("cpLater", "Usarlo en otra compra")) + "</button>"
+          : '<button type="button" class="btn btn--ink btn--sm js-cp-pdp-on">' + esc(tx("cpUse", "Usar mi cupón")) + "</button>";
+      } else if (window.RommerPopup && tx("cpInvite", "") && !(store.get("rommer-pop", {}) || {}).done) {
+        html = '<span class="cp-pdp__t">🎁 ' + esc(tx("cpInvite", "").replace("{cupon}", POP.p || "")) + '</span><button type="button" class="cp-x js-cp-pdp-pop">' + esc(tx("cpInviteBtn", "Quiero mi cupón")) + "</button>";
+      }
+      box.innerHTML = html; box.hidden = !html;
+    }
+    window.RommerPaintCoupon = paintCoupon;
+    document.addEventListener("click", function (e) {
+      if (e.target.closest(".js-cp-pdp-on") && CP) { CP.on = true; cpSave(CP); }
+      if (e.target.closest(".js-cp-pdp-off") && CP) { CP.on = false; cpSave(CP); }
+      if (e.target.closest(".js-cp-pdp-pop") && window.RommerPopup) window.RommerPopup.open();
+    });
     $(".sizes").addEventListener("click", function (e) { var b = e.target.closest(".size"); if (!b || b.disabled) return; state.size = +b.dataset.i; paint(); });
     $(".buy").addEventListener("click", function (e) {
       var q = e.target.closest("[data-pq]"); if (!q) return;
@@ -831,9 +895,10 @@
       btn.disabled = false;
       if (!r || !r.ok) { var m = (r && r.msg) || tx("popErr", "No se pudo suscribir. Probá de nuevo."); if (err) { err.textContent = m; err.hidden = false; } else toast(esc(m)); return; }
       store.set(popKey, { done: 1, code: r.code });
+      cpSave({ code: r.code, type: r.type || "percent", amount: r.amount || POP.p || 10, min: r.min || 0, on: true });
       done(r);
     };
-    if (!RM.ajax) { setTimeout(function () { finish({ ok: true, code: POP.demo || "HOLAROMMER10" }); }, 400); return; } // vista de demostración
+    if (!RM.ajax) { setTimeout(function () { finish({ ok: true, code: POP.demo || "HOLAROMMER10", type: "percent", amount: POP.p || 10, min: 0 }); }, 400); return; } // vista de demostración
     var f = new FormData(form); f.append("action", "rommer_subscribe"); f.append("src", form.dataset.src || "popup");
     fetch(RM.ajax, { method: "POST", body: f, credentials: "same-origin" }).then(function (r) { return r.json(); }).then(finish).catch(function () { finish(null); });
   }
@@ -863,14 +928,25 @@
       pop.classList.remove("is-open"); setTimeout(function () { pop.hidden = true; }, 300);
       if (lenis) lenis.start();
       store.sset("rommer-pop-visto", "1"); // en esta visita no vuelve a aparecer
+      showTab(true);
       var st = popState(); if (!st.done && POP.days > 0) store.set(popKey, { closed: Date.now() });
     }
+    /* Pestaña chica que queda al cerrarlo, para volver a abrirlo */
+    var tab = null;
+    if (POP.tab) {
+      tab = document.createElement("button"); tab.type = "button"; tab.className = "pop-tab"; tab.hidden = true;
+      tab.textContent = POP.tab.replace("{cupon}", POP.p || ""); document.body.appendChild(tab);
+      tab.addEventListener("click", function () { open(); });
+    }
+    function showTab(on) { if (tab) tab.hidden = !on || !!popState().done; }
     function showCode(r) {
+      showTab(false);
       $(".js-pop-form", pop).hidden = true; $(".js-pop-ok", pop).hidden = false;
       $(".js-pop-code", pop).textContent = r.code;
       var t = $(".js-pop-ok-text", pop); if (r.dup && t.dataset.dup) t.textContent = t.dataset.dup;
     }
     window.RommerPopup = { open: open, close: close };
+    if (window.RommerPaintCoupon) window.RommerPaintCoupon();
     $$(".js-pop-close", pop).forEach(function (b) { b.addEventListener("click", function () { close(); }); });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
     $(".js-pop-copy", pop).addEventListener("click", function () {
@@ -880,9 +956,19 @@
     var forced = /[?&]bienvenida\b/.test(location.search);
     var st = popState();
     if (forced) { if (st.done) showCode({ code: st.code }); setTimeout(open, 600); return; }
-    if (!POP.on || st.done || store.sget("rommer-pop-visto")) return;
+    if (!POP.on || st.done) return;
+    if (store.sget("rommer-pop-visto")) { showTab(true); return; }
     if (POP.days > 0 && st.closed && Date.now() - st.closed < POP.days * 864e5) return;
-    timer = setTimeout(function () { open(true); }, Math.max(1, POP.delay || 6) * 1000);
+    var touch = !matchMedia("(hover: hover)").matches;
+    if (touch && POP.scroll > 0) {
+      /* En el celular: aparece al bajar un % de la página (o, si la página es corta, por tiempo) */
+      var onScroll = function () {
+        var h = document.documentElement.scrollHeight - innerHeight;
+        if (h > 200 && scrollY / h * 100 >= POP.scroll) { removeEventListener("scroll", onScroll); open(true); }
+      };
+      addEventListener("scroll", onScroll, { passive: true });
+      if (document.documentElement.scrollHeight - innerHeight <= 200) timer = setTimeout(function () { open(true); }, Math.max(1, POP.delay || 6) * 1000);
+    } else timer = setTimeout(function () { open(true); }, Math.max(1, POP.delay || 6) * 1000);
     if (matchMedia("(hover: hover)").matches) document.addEventListener("mouseout", function (e) { if (!e.relatedTarget && e.clientY < 8) open(true); });
   }
 

@@ -20,6 +20,7 @@ Vista navegable de la tienda online de **Rommer**, generada desde el tema de Wor
   - dos botones, uno para salones y otro para distribuidores, cada uno con su formulario;
   - los dos formularios llegan por WhatsApp.
 - **Popup de bienvenida (nuevo):** a los 6 segundos ofrece 10% OFF en la primera compra a cambio del email. En WordPress crea un cupón único para esa persona y le manda un mail de bienvenida; los emails quedan en Rommer → Suscriptores.
+- **Cupón en la tienda (nuevo):** después de suscribirse, cada producto muestra “Usar mi cupón” con el precio con descuento, el changuito muestra el cupón y en WordPress se aplica solo al pagar. Al cerrar el popup queda una pestaña “🎁 10% OFF”; en el celular el popup aparece al bajar.
 - **Secciones ocultas:** Banners 50/50, ¿Qué necesita tu pelo?, Armá tu kit, Recién salidos y kits, y Manifiesto. No se borraron: en WordPress se vuelven a mostrar desde “Secciones de la Home”.
 
 ## Qué es demostración en esta vista
@@ -27,7 +28,7 @@ Esta copia no tiene servidor. Por eso:
 - “Finalizar compra” muestra un aviso en lugar de abrir el pago.
 - La calculadora de envío muestra valores de ejemplo.
 - No se pueden dejar reseñas.
-- El popup muestra un código de ejemplo (HOLA-7KQ2PM) y no manda mail.
+- El popup muestra un código de ejemplo (HOLA-7KQ2PM) y no manda mail. En el changuito, “¿Tenés un cupón?” acepta ese código de ejemplo.
 
 En WordPress todo eso funciona con WooCommerce y Mercado Pago.
 

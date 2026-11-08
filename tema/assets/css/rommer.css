@@ -1191,3 +1191,25 @@ input, select { font: inherit; }
   .pop__media img { object-position: 50% 22%; }
   .pop__body { padding: 22px 20px 26px; }
 }
+
+/* ---------- Pestaña chica del popup ---------- */
+.pop-tab { position: fixed; left: 16px; bottom: 22px; z-index: 60; border: 0; border-radius: 999px; padding: 11px 16px; background: var(--ink); color: var(--paper); font: 600 14px/1 var(--f-body); box-shadow: 0 8px 24px rgba(0,0,0,.25); cursor: pointer; transition: transform .25s var(--bounce), bottom .3s; }
+.pop-tab:hover { transform: translateY(-2px) scale(1.03); }
+.pop-tab[hidden] { display: none; }
+.sticky-buy.is-on ~ .pop-tab { bottom: 92px; }
+/* ---------- Cupón en la ficha ---------- */
+.cp-pdp { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 10px 0 2px; padding: 12px 14px; border-radius: var(--r-md); background: rgba(253,151,207,.18); box-shadow: inset 0 0 0 1.5px var(--pink); font-size: .92rem; }
+.cp-pdp[hidden] { display: none; }
+.cp-pdp__t { font-weight: 600; }
+.cp-pdp__p { font-weight: 700; }
+.cp-pdp__on { color: #116329; font-weight: 600; }
+.cp-x { background: none; border: 0; padding: 0; font: inherit; font-size: .85rem; text-decoration: underline; text-underline-offset: 3px; color: inherit; cursor: pointer; }
+/* ---------- Cupón en el changuito ---------- */
+.cp-box { display: grid; gap: 8px; margin-bottom: 10px; }
+.cp-link { justify-self: start; background: none; border: 0; padding: 0; font: inherit; font-size: .88rem; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; color: inherit; }
+.cp-use { justify-self: start; border: 0; border-radius: 999px; padding: 8px 14px; background: rgba(253,151,207,.25); box-shadow: inset 0 0 0 1.5px var(--pink); font: 600 .88rem/1.2 var(--f-body); cursor: pointer; color: var(--ink); }
+.cp-link[hidden], .cp-use[hidden], .cp-form[hidden], .cp-msg[hidden] { display: none; }
+.cp-form { display: flex; gap: 8px; }
+.cp-form input { flex: 1; min-width: 0; padding: 9px 14px; border-radius: 999px; border: 1.5px solid rgba(27,27,27,.25); font: inherit; text-transform: uppercase; }
+.cp-msg { margin: 0; font-size: .85rem; color: var(--red); font-weight: 600; }
+.js-cp-row .cp-x { margin-left: 6px; font-size: .8rem; }
