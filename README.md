@@ -23,6 +23,12 @@ Vista navegable de la tienda online de **Rommer**, generada desde el tema de Wor
 - **Cupón en la tienda (nuevo):** después de suscribirse, cada producto muestra “Usar mi cupón” con el precio con descuento, el changuito muestra el cupón y en WordPress se aplica solo al pagar. Al cerrar el popup queda una pestaña “🎁 10% OFF”; en el celular el popup aparece al bajar.
 - **Reglas del cupón (nuevo):** el cupón de bienvenida es solo para la primera compra, de un solo uso y con su email; no se suma con el descuento por kit (se aplica el mayor) y sí con la transferencia.
 - **Footer profesional (nuevo):** links legales (Términos, Privacidad, Defensa del consumidor), Botón de arrepentimiento con su formulario y créditos de diseño y desarrollo de ALTO.
+- **Producto nuevo: Botox Repair** (tratamiento de reparación intensiva), con su ficha y en el carrusel “Los elegidos de Rommer”.
+- **Antes / después:** fotos reales de la clienta (versión fondo claro, la que mejor combina con la paleta de la web).
+- **Haircare for hot girls:** la foto se mueve despacio simulando un video. En WordPress se puede cargar un video en su lugar.
+- **Botón “Hacé el test”** de Tu rutina: se sacó.
+- **Sección “¿Y si lo profesional no tuviera que verse profesional?”:** se sacó de esta vista. En WordPress queda oculta para usarla más adelante.
+- **Popup:** un solo cupón por persona. Si vuelve a suscribirse con el mismo mail (o escrito distinto, como ana+1@gmail.com) recibe el mismo código; si ya venció, no se le da otro.
 - **Secciones ocultas:** Banners 50/50, ¿Qué necesita tu pelo?, Armá tu kit, Recién salidos y kits, y Manifiesto. No se borraron: en WordPress se vuelven a mostrar desde “Secciones de la Home”.
 
 ## Qué es demostración en esta vista
