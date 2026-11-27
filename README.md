@@ -14,6 +14,8 @@ Vista navegable de la tienda online de **Rommer**, generada desde el tema de Wor
 - **Franja animada:** Fórmula profesional · Industria argentina · Resultados que se sienten · Para el salón y para vos.
 - **Los elegidos de Rommer** (antes “Los más pedidos”).
 - **Tu rutina Rommer** (antes “El Método”): “Tu rutina. Tus reglas.”, bajada y los 3 pasos con sus textos nuevos.
+- **Fórmulas que se notan:** Alisado → Botox Repair y Nutrición → Thermo Shield Complex (Reparación sigue con Shampoo Keratin).
+- **Changuito:** con un cupón guardado se puede escribir otro código (antes solo aparecía “Usar mi cupón”).
 - **Haircare for hot girls:** “hot girls” separado, textos nuevos y botón “Sumate a rommer’s club”.
 - **Rommer en tu salón:**
   - bajada y beneficios nuevos;
@@ -24,7 +26,7 @@ Vista navegable de la tienda online de **Rommer**, generada desde el tema de Wor
 - **Reglas del cupón (nuevo):** el cupón de bienvenida es solo para la primera compra, de un solo uso y con su email; no se suma con el descuento por kit (se aplica el mayor) y sí con la transferencia.
 - **Footer profesional (nuevo):** links legales (Términos, Privacidad, Defensa del consumidor), Botón de arrepentimiento con su formulario y créditos de diseño y desarrollo de ALTO.
 - **Producto nuevo: Botox Repair** (tratamiento de reparación intensiva), con su ficha y en el carrusel “Los elegidos de Rommer”.
-- **Antes / después:** fotos reales de la clienta (versión fondo claro, la que mejor combina con la paleta de la web).
+- **Antes / después:** fotos reales, alineadas (cabeza y hombros en el mismo lugar al mover la línea), con el mismo fondo blanco y sin filtros: se ven en su calidad original.
 - **Haircare for hot girls:** la foto se mueve despacio simulando un video. En WordPress se puede cargar un video en su lugar.
 - **Botón “Hacé el test”** de Tu rutina: se sacó.
 - **Sección “¿Y si lo profesional no tuviera que verse profesional?”:** se sacó de esta vista. En WordPress queda oculta para usarla más adelante.

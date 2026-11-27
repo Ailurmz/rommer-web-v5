@@ -286,7 +286,7 @@
       var on = $(".js-cp-on", d), op = $(".js-cp-open", d), fm = $(".js-cp-form", d), msg = $(".js-cp-msg", d);
       var needMin = CP && CP.on && CP.min && sub < CP.min;
       on.hidden = !(CP && CP.code && !CP.on); on.textContent = "🎁 " + tx("cpUse", "Usar mi cupón") + " " + (CP ? CP.code : "");
-      op.hidden = !!(CP && CP.code) || !fm.hidden;
+      op.hidden = !!(CP && CP.code && CP.on) || !fm.hidden; // con un cupón guardado sin usar, igual se puede escribir otro
       if (needMin) { msg.textContent = tx("cpMin", "Este cupón vale en compras desde {monto}.").replace("{monto}", money(CP.min)); msg.hidden = false; }
       else if (kitBest) { msg.textContent = tx("cpKitNote", "Tu kit ya tiene un descuento mayor: tu cupón queda guardado para otra compra."); msg.hidden = false; msg.classList.add("cp-msg--ok"); }
       else if (msg.dataset.keep !== "1") { msg.hidden = true; }
